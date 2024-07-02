@@ -1,0 +1,88 @@
+version: '3.8'
+
+services:
+  api-gateway:
+    build:
+      context: .
+      dockerfile: ./apps/api-gateway/Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - NODE_ENV=production
+      - RMQ_URL=amqp://rabbitmq:5672
+      - RMQ_QUEUE=microservice_1_queue
+      - MICROSERVICE_1_RMQ_QUEUE=microservice_1_queue
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - MICROSERVICE_1_REDIS_DB=1
+      - MICROSERVICE_2_REDIS_DB=2
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=mydatabase
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+    depends_on:
+      - rabbitmq
+      - redis
+      - postgres
+
+  microservice-1:
+    build:
+      context: .
+      dockerfile: ./apps/microservice-1/Dockerfile
+    environment:
+      - NODE_ENV=production
+      - RMQ_URL=amqp://rabbitmq:5672
+      - RMQ_QUEUE=microservice_1_queue
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=mydatabase
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+    depends_on:
+      - rabbitmq
+      - postgres
+
+  microservice-2:
+    build:
+      context: .
+      dockerfile: ./apps/microservice-2/Dockerfile
+    environment:
+      - NODE_ENV=production
+      - REDIS_HOST=redis
+      - REDIS_PORT=6379
+      - REDIS_DB=2
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_DB=mydatabase
+      - POSTGRES_USER=myuser
+      - POSTGRES_PASSWORD=mypassword
+    depends_on:
+      - redis
+      - postgres
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    command: ["redis-server", "--loglevel", "verbose"]
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+
+  postgres:
+    image: postgres:13
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: mydatabase
+      POSTGRES_USER: myuser
+      POSTGRES_PASSWORD: mypassword
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+volumes:
+  postgres_data:

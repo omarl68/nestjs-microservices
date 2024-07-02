@@ -1,0 +1,115 @@
+import {
+  Body,
+  Controller,
+  Get,
+  HttpException,
+  HttpStatus,
+  Inject,
+  Post,
+  UsePipes,
+  ValidationPipe,
+} from '@nestjs/common';
+import { ApiGatewayService } from './api-gateway.service';
+import { ClientProxy, Transport } from '@nestjs/microservices';
+import { first, firstValueFrom } from 'rxjs';
+import { CalculateInput } from '../../../libs/shared-lib/src/dto/calculate.input';
+import { sumInput } from '../../../libs/shared-lib/src/dto/sum.input';
+import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+
+@Controller()
+@ApiTags('apiGateway')
+export class ApiGatewayController {
+  constructor(
+    private readonly apiGatewayService: ApiGatewayService,
+    @Inject('MICRO_SERVICE_1') private client: ClientProxy,
+    @Inject('MICRO_SERVICE_2') private client2: ClientProxy,
+  ) {}
+  @Get()
+  @ApiOperation({ summary: 'Get hello message' })
+  @ApiResponse({ status: 200, description: 'Returns a hello message' })
+  getHello(): string {
+    return this.apiGatewayService.getHello();
+  }
+
+  @Post('/sum')
+  @ApiOperation({ summary: 'Sum numbers from both services' })
+  @ApiBody({ type: sumInput })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the sum of numbers from both services',
+  })
+  @UsePipes(new ValidationPipe({ transform: true }))
+  async sum(
+    @Body() calculateInput: sumInput,
+  ): Promise<{ message: string; statusCode: number; data: number }> {
+    try {
+      const { numbers_1, numbers_2 } = calculateInput;
+      const sum_service_1 = await firstValueFrom(
+        this.apiGatewayService.SumService1(this.client, numbers_1),
+      );
+      const sum_service_2 = await firstValueFrom(
+        this.apiGatewayService.SumService2(this.client2, numbers_2),
+      );
+      return {
+        message: 'Sum calculated successfully',
+        statusCode: HttpStatus.OK,
+        data: sum_service_1 + sum_service_2,
+      };
+    } catch (error) {
+      throw new HttpException(
+        'Failed to calculate sum',
+        HttpStatus.BAD_REQUEST,
+      );
+    }
+  }
+
+  @Get('/service-1')
+  @ApiOperation({ summary: 'Get hello message from Service 1' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns a hello message from Service 1',
+  })
+  async getHelloService1(): Promise<string> {
+    return await firstValueFrom(this.apiGatewayService.SendHello1(this.client));
+  }
+
+  @Post('/sum-service-1')
+  @ApiOperation({ summary: 'Sum numbers using Service 1' })
+  @ApiBody({ type: CalculateInput })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the sum of numbers from Service 1',
+  })
+  async sumService1(@Body() calculateInput: CalculateInput): Promise<number> {
+    const { numbers } = calculateInput;
+    return await firstValueFrom(
+      this.apiGatewayService.SumService1(this.client, numbers),
+    );
+  }
+
+  @Get('/service-2')
+  @ApiOperation({ summary: 'Get hello message from Service 2' })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns a hello message from Service 2',
+  })
+  async getHelloService2(): Promise<string> {
+    return await firstValueFrom(
+      this.apiGatewayService.sendHello2(this.client2),
+    );
+  }
+
+  @Post('/sum-service-2')
+  @ApiOperation({ summary: 'Sum numbers using Service 2' })
+  @ApiBody({ type: CalculateInput })
+  @ApiResponse({
+    status: 200,
+    description: 'Returns the sum of numbers from Service 2',
+  })
+  async sumService2(@Body() calculateInput: CalculateInput): Promise<number> {
+    const { numbers } = calculateInput;
+    return await firstValueFrom(
+      this.apiGatewayService.SumService2(this.client2, numbers),
+    );
+  }
+}
