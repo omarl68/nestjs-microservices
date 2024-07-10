@@ -6,15 +6,18 @@ import {
   HttpStatus,
   Inject,
   Post,
+  Res,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
 import { ApiGatewayService } from './api-gateway.service';
-import { ClientProxy, Transport } from '@nestjs/microservices';
-import { first, firstValueFrom } from 'rxjs';
+import { ClientProxy } from '@nestjs/microservices';
+import { firstValueFrom } from 'rxjs';
 import { CalculateInput } from '../../../libs/shared-lib/src/dto/calculate.input';
 import { sumInput } from '../../../libs/shared-lib/src/dto/sum.input';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
+import { register } from 'prom-client';
+import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 
 @Controller()
 @ApiTags('apiGateway')
@@ -23,7 +26,15 @@ export class ApiGatewayController {
     private readonly apiGatewayService: ApiGatewayService,
     @Inject('MICRO_SERVICE_1') private client: ClientProxy,
     @Inject('MICRO_SERVICE_2') private client2: ClientProxy,
+    @InjectPinoLogger('MICRO_SERVICE_1') private readonly logger: PinoLogger,
   ) {}
+
+  @Get('/metrics')
+  async getMetrics(@Res() res: Response): Promise<void> {
+    (res as any).set('Content-Type', register.contentType);
+    (res as any).end(await register.metrics());
+  }
+
   @Get()
   @ApiOperation({ summary: 'Get hello message' })
   @ApiResponse({ status: 200, description: 'Returns a hello message' })
@@ -50,6 +61,7 @@ export class ApiGatewayController {
       const sum_service_2 = await firstValueFrom(
         this.apiGatewayService.SumService2(this.client2, numbers_2),
       );
+   //   this.logger.info('hello , my friend !')
       return {
         message: 'Sum calculated successfully',
         statusCode: HttpStatus.OK,

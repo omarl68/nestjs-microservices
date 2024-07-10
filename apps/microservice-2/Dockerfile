@@ -8,6 +8,8 @@ RUN npm install
 
 COPY . .
 
+RUN npm install prom-client
+
 RUN npm run build microservice-2
 
 CMD ["node", "dist/apps/microservice-2/main"]

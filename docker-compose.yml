@@ -6,9 +6,9 @@ services:
       context: .
       dockerfile: ./apps/api-gateway/Dockerfile
     ports:
-      - "3001:3001"
+      - '3001:3001'
     environment:
-      - NODE_ENV=production
+      - NODE_ENV=development
       - RMQ_URL=amqp://rabbitmq:5672
       - RMQ_QUEUE=microservice_1_queue
       - MICROSERVICE_1_RMQ_QUEUE=microservice_1_queue
@@ -18,9 +18,10 @@ services:
       - MICROSERVICE_2_REDIS_DB=2
       - POSTGRES_HOST=postgres
       - POSTGRES_PORT=5432
-      - POSTGRES_DB=mydatabase
-      - POSTGRES_USER=myuser
-      - POSTGRES_PASSWORD=mypassword
+      - POSTGRES_DB=postgres
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=pass123
+      - LOG_LEVEL=info
     depends_on:
       - rabbitmq
       - redis
@@ -34,14 +35,8 @@ services:
       - NODE_ENV=production
       - RMQ_URL=amqp://rabbitmq:5672
       - RMQ_QUEUE=microservice_1_queue
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=mydatabase
-      - POSTGRES_USER=myuser
-      - POSTGRES_PASSWORD=mypassword
     depends_on:
       - rabbitmq
-      - postgres
 
   microservice-2:
     build:
@@ -52,37 +47,77 @@ services:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
       - REDIS_DB=2
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=mydatabase
-      - POSTGRES_USER=myuser
-      - POSTGRES_PASSWORD=mypassword
     depends_on:
       - redis
-      - postgres
+
+  postgres:
+    image: postgres
+    ports:
+      - '5432:5432'
+    restart: always
+    environment:
+      POSTGRES_DB: postgres
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: pass123
+    volumes:
+      - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres']
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
     image: redis:alpine
     ports:
-      - "6379:6379"
-    command: ["redis-server", "--loglevel", "verbose"]
+      - '6379:6379'
+    command: ['redis-server', '--loglevel', 'verbose']
 
   rabbitmq:
     image: rabbitmq:3-management
     ports:
-      - "5672:5672"
-      - "15672:15672"
+      - '5672:5672'
+      - '15672:15672'
 
-  postgres:
-    image: postgres:13
+  adminer:
+    image: adminer
+    container_name: adminer
     ports:
-      - "5432:5432"
-    environment:
-      POSTGRES_DB: mydatabase
-      POSTGRES_USER: myuser
-      POSTGRES_PASSWORD: mypassword
+      - '8080:8080'
+
+  grafana:
+    image: grafana/grafana:latest
+    ports:
+      - '3010:3000'
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - grafana_data:/var/lib/grafana
+    depends_on:
+      - prometheus
+
+  prometheus:
+    image: prom/prometheus:latest
+    ports:
+      - '9090:9090'
+    volumes:
+      - ./promtail-config.yml:/etc/promtail/config.yml
+      - prometheus_data:/prometheus
+      - /var/log:/var/log
+    command:
+      - '--config.file=/etc/prometheus/prometheus.yml'
+      - '--storage.tsdb.path=/prometheus'
+      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
+      - '--web.console.templates=/usr/share/prometheus/consoles'
+
+  loki:
+    image: grafana/loki:latest
+    ports:
+      - '3100:3100'
+    command: -config.file=/etc/loki/local-config.yaml
+    volumes:
+      - loki_data:/loki
 
 volumes:
   postgres_data:
+  grafana_data:
+  prometheus_data:
+  loki_data:
