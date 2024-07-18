@@ -6,6 +6,7 @@ import {
   HttpStatus,
   Inject,
   Post,
+  Req,
   Res,
   UsePipes,
   ValidationPipe,
@@ -16,8 +17,8 @@ import { firstValueFrom } from 'rxjs';
 import { CalculateInput } from '../../../libs/shared-lib/src/dto/calculate.input';
 import { sumInput } from '../../../libs/shared-lib/src/dto/sum.input';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
-import { register } from 'prom-client';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
+import { register } from 'prom-client';
 
 @Controller()
 @ApiTags('apiGateway')
@@ -30,9 +31,15 @@ export class ApiGatewayController {
   ) {}
 
   @Get('/metrics')
-  async getMetrics(@Res() res: Response): Promise<void> {
-    (res as any).set('Content-Type', register.contentType);
-    (res as any).end(await register.metrics());
+  async getMetrics(@Req() req, @Res() res) {
+    try {
+      res.set('Content-Type', register.contentType);
+      const metrics = await register.metrics();
+      res.send(metrics);
+    } catch (error) {
+      console.error('Error fetching metrics:', error);
+      res.status(500).send('Error fetching metrics');
+    }
   }
 
   @Get()
@@ -61,7 +68,7 @@ export class ApiGatewayController {
       const sum_service_2 = await firstValueFrom(
         this.apiGatewayService.SumService2(this.client2, numbers_2),
       );
-   //   this.logger.info('hello , my friend !')
+      //   this.logger.info('hello , my friend !')
       return {
         message: 'Sum calculated successfully',
         statusCode: HttpStatus.OK,

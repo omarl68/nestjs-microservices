@@ -20,7 +20,7 @@ services:
       - POSTGRES_PORT=5432
       - POSTGRES_DB=postgres
       - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=pass123
+      - POSTGRES_PASSWORD=pass0123
       - LOG_LEVEL=info
     depends_on:
       - rabbitmq
@@ -87,26 +87,27 @@ services:
 
   grafana:
     image: grafana/grafana:latest
-    ports:
-      - '3010:3000'
     volumes:
       - grafana_data:/var/lib/grafana
+      - ./grafana/provisioning:/etc/grafana/provisioning
+      - ./grafana/config.ini:/etc/grafana/config.ini
+      - ./grafana/dashboards:/var/lib/grafana/dashboards
+    environment:
+      - GF_SECURITY_ADMIN_PASSWORD=illchangeitanyway
     depends_on:
       - prometheus
+    ports:
+      - '3010:3000'
 
   prometheus:
     image: prom/prometheus:latest
-    ports:
-      - '9090:9090'
     volumes:
-      - ./promtail-config.yml:/etc/promtail/config.yml
       - prometheus_data:/prometheus
-      - /var/log:/var/log
+      - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml
     command:
       - '--config.file=/etc/prometheus/prometheus.yml'
-      - '--storage.tsdb.path=/prometheus'
-      - '--web.console.libraries=/usr/share/prometheus/console_libraries'
-      - '--web.console.templates=/usr/share/prometheus/consoles'
+    ports:
+      - '9090:9090'
 
   loki:
     image: grafana/loki:latest

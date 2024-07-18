@@ -12,6 +12,7 @@ async function bootstrap() {
   app.useGlobalPipes(new ValidationPipe());
 
   const register = new promClient.Registry();
+  promClient.collectDefaultMetrics({ register });
 
   const httpRequestDurationMicroseconds = new promClient.Histogram({
     name: 'http_request_duration_seconds',
@@ -31,9 +32,11 @@ async function bootstrap() {
     next();
   });
 
+
+
   const config = new DocumentBuilder()
     .setTitle('SoftyRh')
-    .setDescription('The softy rh API description')
+    .setDescription('The Softy RH API description')
     .setVersion('1.0')
     .build();
   const document = SwaggerModule.createDocument(app, config);
@@ -45,9 +48,9 @@ async function bootstrap() {
       showRequestDuration: true,
     },
   });
-  SwaggerModule.setup('api', app, document);
-
 
   await app.listen(3001);
+  console.log('App started!');
 }
+
 bootstrap();

@@ -4,12 +4,13 @@ WORKDIR /usr/src/app
 
 COPY package*.json ./
 
+RUN npm install prom-client
+RUN npm install pino-pretty
 RUN npm install
+
 
 COPY . .
 
-RUN npm install prom-client
-RUN npm install pino-pretty
 
 RUN npm run build api-gateway
 

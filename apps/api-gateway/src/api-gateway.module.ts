@@ -5,7 +5,9 @@ import { ClientsModule, Transport } from '@nestjs/microservices';
 import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
-
+import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { APP_INTERCEPTOR } from '@nestjs/core';
+import { LoggingInterceptor } from '../logging.interceptor';
 @Module({
   imports: [
     LoggerModule.forRoot({
@@ -50,8 +52,12 @@ import { LoggerModule } from 'nestjs-pino';
         inject: [ConfigService],
       },
     ]),
+    PrometheusModule.register(),
   ],
   controllers: [ApiGatewayController],
-  providers: [ApiGatewayService],
+  providers: [
+    ApiGatewayService,
+    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
+  ],
 })
 export class ApiGatewayModule {}
