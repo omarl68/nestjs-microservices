@@ -8,6 +8,7 @@ import {
   Post,
   Req,
   Res,
+  UseGuards,
   UsePipes,
   ValidationPipe,
 } from '@nestjs/common';
@@ -19,6 +20,7 @@ import { sumInput } from '../../../libs/shared-lib/src/dto/sum.input';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { register } from 'prom-client';
+import { KeycloakGuard } from './keycloak/guard';
 
 @Controller()
 @ApiTags('apiGateway')
@@ -30,6 +32,12 @@ export class ApiGatewayController {
     @InjectPinoLogger('MICRO_SERVICE_1') private readonly logger: PinoLogger,
   ) {}
 
+  @UseGuards(KeycloakGuard)
+  @Get('protected')
+  getProtectedResource() {
+    return 'This is a protected resource';
+  }
+  
   @Get('/metrics')
   async getMetrics(@Req() req, @Res() res) {
     try {

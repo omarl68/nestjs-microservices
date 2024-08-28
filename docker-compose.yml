@@ -7,58 +7,51 @@ services:
       dockerfile: ./apps/api-gateway/Dockerfile
     ports:
       - '3001:3001'
-    environment:
-      - NODE_ENV=development
-      - RMQ_URL=amqp://rabbitmq:5672
-      - RMQ_QUEUE=microservice_1_queue
-      - MICROSERVICE_1_RMQ_QUEUE=microservice_1_queue
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - MICROSERVICE_1_REDIS_DB=1
-      - MICROSERVICE_2_REDIS_DB=2
-      - POSTGRES_HOST=postgres
-      - POSTGRES_PORT=5432
-      - POSTGRES_DB=postgres
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=pass0123
-      - LOG_LEVEL=info
+    env_file:
+      - .env 
     depends_on:
       - rabbitmq
       - redis
-      - postgres
+      - keycloak
 
   microservice-1:
     build:
       context: .
       dockerfile: ./apps/microservice-1/Dockerfile
-    environment:
-      - NODE_ENV=production
-      - RMQ_URL=amqp://rabbitmq:5672
-      - RMQ_QUEUE=microservice_1_queue
+    env_file:
+      - .env 
     depends_on:
       - rabbitmq
+      - keycloak
 
   microservice-2:
     build:
       context: .
       dockerfile: ./apps/microservice-2/Dockerfile
-    environment:
-      - NODE_ENV=production
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=2
+    env_file:
+      - .env
     depends_on:
       - redis
+      - keycloak
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:latest
+    ports:
+      - '8081:8080' # Ensure this is correct for local access
+    env_file:
+      - .env # Reference the .env file for admin credentials
+    depends_on:
+      postgres:
+        condition: service_healthy
+    command: ['start-dev']
 
   postgres:
     image: postgres
     ports:
       - '5432:5432'
     restart: always
-    environment:
-      POSTGRES_DB: postgres
-      POSTGRES_USER: postgres
-      POSTGRES_PASSWORD: pass123
+    env_file:
+      - .env
     volumes:
       - ./init-db.sh:/docker-entrypoint-initdb.d/init-db.sh
     healthcheck:
@@ -66,15 +59,23 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    command:
+      - 'postgres'
+      - '-c'
+      - 'max_connections=200'
 
   redis:
     image: redis:alpine
+    env_file:
+      - .env
     ports:
       - '6379:6379'
     command: ['redis-server', '--loglevel', 'verbose']
 
   rabbitmq:
     image: rabbitmq:3-management
+    env_file:
+      - .env
     ports:
       - '5672:5672'
       - '15672:15672'
@@ -82,18 +83,20 @@ services:
   adminer:
     image: adminer
     container_name: adminer
+    env_file:
+      - .env
     ports:
       - '8080:8080'
 
   grafana:
     image: grafana/grafana:latest
+    env_file:
+      - .env
     volumes:
       - grafana_data:/var/lib/grafana
       - ./grafana/provisioning:/etc/grafana/provisioning
       - ./grafana/config.ini:/etc/grafana/config.ini
       - ./grafana/dashboards:/var/lib/grafana/dashboards
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=illchangeitanyway
     depends_on:
       - prometheus
     ports:
@@ -101,6 +104,8 @@ services:
 
   prometheus:
     image: prom/prometheus:latest
+    env_file:
+      - .env
     volumes:
       - prometheus_data:/prometheus
       - ./prometheus/prometheus.yml:/etc/prometheus/prometheus.yml

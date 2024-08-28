@@ -1,0 +1,2 @@
+import{a as i}from"./index-C9t2UlUN.js";var r=(n=>(n.AdminFineGrainedAuthz="ADMIN_FINE_GRAINED_AUTHZ",n.ClientPolicies="CLIENT_POLICIES",n.Kerberos="KERBEROS",n.DynamicScopes="DYNAMIC_SCOPES",n.DPoP="DPOP",n.DeviceFlow="DEVICE_FLOW",n.TransientUsers="TRANSIENT_USERS",n.ClientTypes="CLIENT_TYPES",n))(r||{});function I(){const{features:n}=i();return function(s){return n?n.filter(e=>e.enabled).map(e=>e.name).includes(s):!1}}export{r as F,I as u};
+//# sourceMappingURL=useIsFeatureEnabled-CkHhuO9z.js.map

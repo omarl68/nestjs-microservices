@@ -5,6 +5,8 @@ import { swaggerDarkTheme } from '../public/swagger-dark-theme';
 import { ValidationPipe } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 import * as promClient from 'prom-client';
+import * as session from 'express-session';
+import KeycloakConnect from 'keycloak-connect';
 
 async function bootstrap() {
   const app = await NestFactory.create(ApiGatewayModule);
@@ -23,6 +25,30 @@ async function bootstrap() {
 
   register.registerMetric(httpRequestDurationMicroseconds);
 
+  // const memoryStore = new session.MemoryStore();
+  // const keycloakConfig = {
+  //   'auth-server-url': process.env.KEYCLOAK_SERVER_URL,
+  //   realm: process.env.KEYCLOAK_REALM,
+  //   'ssl-required': 'external',
+  //   resource: process.env.KEYCLOAK_CLIENT_ID,
+  //   'confidential-port': 0,
+  //   credentials: {
+  //     secret: process.env.KEYCLOAK_CLIENT_SECRET,
+  //   },
+  // };
+
+  // const keycloak = new KeycloakConnect({ store: memoryStore }, keycloakConfig);
+  // app.use(
+  //   session({
+  //     secret: process.env.SESSION_SECRET,
+  //     resave: false,
+  //     saveUninitialized: true,
+  //     store: memoryStore,
+  //   }),
+  // );
+
+  // app.use(keycloak.middleware());
+
   app.use((req, res, next) => {
     const end = httpRequestDurationMicroseconds.startTimer();
     res.on('finish', () => {
@@ -31,8 +57,6 @@ async function bootstrap() {
     });
     next();
   });
-
-
 
   const config = new DocumentBuilder()
     .setTitle('SoftyRh')

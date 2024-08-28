@@ -2,12 +2,13 @@ import { Module } from '@nestjs/common';
 import { ApiGatewayController } from './api-gateway.controller';
 import { ApiGatewayService } from './api-gateway.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { TypeOrmModule, TypeOrmModuleOptions } from '@nestjs/typeorm';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from '../logging.interceptor';
+import { KeycloakModule } from './keycloak/keycloak.module';
+
 @Module({
   imports: [
     LoggerModule.forRoot({
@@ -53,6 +54,14 @@ import { LoggingInterceptor } from '../logging.interceptor';
       },
     ]),
     PrometheusModule.register(),
+    KeycloakModule.forRoot({
+      'confidential-port': 0,
+      'auth-server-url': 'http://keycloak:8081/auth',
+      'resource': '1',
+      'ssl-required': 'external',
+      'bearer-only': true,
+      realm: 'nextJs',
+    }),
   ],
   controllers: [ApiGatewayController],
   providers: [

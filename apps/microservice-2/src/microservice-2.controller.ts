@@ -1,7 +1,7 @@
-import { Controller, Get } from '@nestjs/common';
+import { Controller } from '@nestjs/common';
 import { Microservice2Service } from './microservice-2.service';
 import { MessagePattern } from '@nestjs/microservices';
-import { CalculateInput } from '../../../libs/shared-lib/src/dto/calculate.input';
+
 
 @Controller()
 export class Microservice2Controller {
