@@ -32,7 +32,7 @@ export class ApiGatewayController {
     @InjectPinoLogger('MICRO_SERVICE_1') private readonly logger: PinoLogger,
   ) {}
 
-  @UseGuards(KeycloakGuard)
+//  @UseGuards(KeycloakGuard)
   @Get('protected')
   getProtectedResource() {
     return 'This is a protected resource';

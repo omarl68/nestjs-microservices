@@ -7,7 +7,7 @@ import { LoggerModule } from 'nestjs-pino';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { LoggingInterceptor } from '../logging.interceptor';
-import { KeycloakModule } from './keycloak/keycloak.module';
+
 
 @Module({
   imports: [
@@ -54,14 +54,14 @@ import { KeycloakModule } from './keycloak/keycloak.module';
       },
     ]),
     PrometheusModule.register(),
-    KeycloakModule.forRoot({
-      'confidential-port': 0,
-      'auth-server-url': 'http://keycloak:8081/auth',
-      'resource': '1',
-      'ssl-required': 'external',
-      'bearer-only': true,
-      realm: 'nextJs',
-    }),
+    // KeycloakModule.forRoot({
+    //   'confidential-port': 0,
+    //   'auth-server-url': 'http://keycloak:8081/auth',
+    //   'resource': '1',
+    //   'ssl-required': 'external',
+    //   'bearer-only': true,
+    //   realm: 'nextJs',
+    // }),
   ],
   controllers: [ApiGatewayController],
   providers: [

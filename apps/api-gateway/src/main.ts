@@ -5,8 +5,7 @@ import { swaggerDarkTheme } from '../public/swagger-dark-theme';
 import { ValidationPipe } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 import * as promClient from 'prom-client';
-import * as session from 'express-session';
-import KeycloakConnect from 'keycloak-connect';
+
 
 async function bootstrap() {
   const app = await NestFactory.create(ApiGatewayModule);
