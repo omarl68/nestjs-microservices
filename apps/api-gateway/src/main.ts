@@ -6,9 +6,9 @@ import { ValidationPipe } from '@nestjs/common';
 import { Logger } from 'nestjs-pino';
 import * as promClient from 'prom-client';
 
-
 async function bootstrap() {
-  const app = await NestFactory.create(ApiGatewayModule);
+  const app = await NestFactory.create(ApiGatewayModule,{  logger: ['log','debug','error','warn'],
+  });
   app.useLogger(app.get(Logger));
   app.useGlobalPipes(new ValidationPipe());
 
@@ -24,29 +24,6 @@ async function bootstrap() {
 
   register.registerMetric(httpRequestDurationMicroseconds);
 
-  // const memoryStore = new session.MemoryStore();
-  // const keycloakConfig = {
-  //   'auth-server-url': process.env.KEYCLOAK_SERVER_URL,
-  //   realm: process.env.KEYCLOAK_REALM,
-  //   'ssl-required': 'external',
-  //   resource: process.env.KEYCLOAK_CLIENT_ID,
-  //   'confidential-port': 0,
-  //   credentials: {
-  //     secret: process.env.KEYCLOAK_CLIENT_SECRET,
-  //   },
-  // };
-
-  // const keycloak = new KeycloakConnect({ store: memoryStore }, keycloakConfig);
-  // app.use(
-  //   session({
-  //     secret: process.env.SESSION_SECRET,
-  //     resave: false,
-  //     saveUninitialized: true,
-  //     store: memoryStore,
-  //   }),
-  // );
-
-  // app.use(keycloak.middleware());
 
   app.use((req, res, next) => {
     const end = httpRequestDurationMicroseconds.startTimer();

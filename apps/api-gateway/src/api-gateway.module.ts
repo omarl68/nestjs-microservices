@@ -1,13 +1,19 @@
 import { Module } from '@nestjs/common';
+import {
+  AuthGuard,
+  KeycloakConnectModule,
+  PolicyEnforcementMode,
+  ResourceGuard,
+  RoleGuard,
+  TokenValidation,
+} from 'nest-keycloak-connect';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { ApiGatewayController } from './api-gateway.controller';
 import { ApiGatewayService } from './api-gateway.service';
 import { ClientsModule, Transport } from '@nestjs/microservices';
-import { ConfigModule, ConfigService } from '@nestjs/config';
 import { LoggerModule } from 'nestjs-pino';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
-import { APP_INTERCEPTOR } from '@nestjs/core';
-import { LoggingInterceptor } from '../logging.interceptor';
-
+import { APP_GUARD } from '@nestjs/core';
 
 @Module({
   imports: [
@@ -21,7 +27,23 @@ import { LoggingInterceptor } from '../logging.interceptor';
       },
     }),
     ConfigModule.forRoot({
-      isGlobal: true, // Make ConfigModule available globally
+      isGlobal: true,
+    }),
+    KeycloakConnectModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        authServerUrl: configService.get<string>('KEYCLOAK_AUTH_SERVER_URL'),
+        realm: configService.get<string>('KEYCLOAK_REALM'),
+        clientId: configService.get<string>('KEYCLOAK_CLIENT_ID'),
+        secret: configService.get<string>('KEYCLOAK_CLIENT_SECRET'),
+        policyEnforcement: PolicyEnforcementMode.PERMISSIVE,
+        tokenValidation: TokenValidation.OFFLINE,
+      //  realmPublicKey:"http://localhost:8081/realms/softy-rh",
+        bearerOnly: true,
+        useNestLogger: true,
+        cookieKey: 'KEYCLOAK_JWT',
+      }),
+      inject: [ConfigService],
     }),
     ClientsModule.registerAsync([
       {
@@ -54,19 +76,22 @@ import { LoggingInterceptor } from '../logging.interceptor';
       },
     ]),
     PrometheusModule.register(),
-    // KeycloakModule.forRoot({
-    //   'confidential-port': 0,
-    //   'auth-server-url': 'http://keycloak:8081/auth',
-    //   'resource': '1',
-    //   'ssl-required': 'external',
-    //   'bearer-only': true,
-    //   realm: 'nextJs',
-    // }),
   ],
   controllers: [ApiGatewayController],
   providers: [
     ApiGatewayService,
-    { provide: APP_INTERCEPTOR, useClass: LoggingInterceptor },
+    {
+      provide: APP_GUARD,
+      useClass: AuthGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: ResourceGuard,
+    },
+    {
+      provide: APP_GUARD,
+      useClass: RoleGuard,
+    },
   ],
 })
 export class ApiGatewayModule {}

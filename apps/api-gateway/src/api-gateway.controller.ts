@@ -20,7 +20,16 @@ import { sumInput } from '../../../libs/shared-lib/src/dto/sum.input';
 import { ApiBody, ApiOperation, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { InjectPinoLogger, PinoLogger } from 'nestjs-pino';
 import { register } from 'prom-client';
-import { KeycloakGuard } from './keycloak/guard';
+import {
+  AuthGuard,
+  Resource,
+  RoleGuard,
+  Roles,
+  Scopes,
+  Unprotected,
+} from 'nest-keycloak-connect';
+import { RolesGuard } from './auth/guards/roles.guard';
+import { KeycloakAuthGuard } from './auth/guards/keycloak-auth.guard';
 
 @Controller()
 @ApiTags('apiGateway')
@@ -32,12 +41,17 @@ export class ApiGatewayController {
     @InjectPinoLogger('MICRO_SERVICE_1') private readonly logger: PinoLogger,
   ) {}
 
-//  @UseGuards(KeycloakGuard)
   @Get('protected')
+  @UseGuards(AuthGuard, RoleGuard)
   getProtectedResource() {
     return 'This is a protected resource';
   }
-  
+
+  @Get('check')
+  check() {
+    return 'This is a protected resource';
+  }
+
   @Get('/metrics')
   async getMetrics(@Req() req, @Res() res) {
     try {
@@ -51,6 +65,8 @@ export class ApiGatewayController {
   }
 
   @Get()
+  @Unprotected()
+  @Roles({ roles: ['client-user'] })
   @ApiOperation({ summary: 'Get hello message' })
   @ApiResponse({ status: 200, description: 'Returns a hello message' })
   getHello(): string {
@@ -58,6 +74,7 @@ export class ApiGatewayController {
   }
 
   @Post('/sum')
+  @UseGuards(KeycloakAuthGuard)
   @ApiOperation({ summary: 'Sum numbers from both services' })
   @ApiBody({ type: sumInput })
   @ApiResponse({
@@ -91,6 +108,8 @@ export class ApiGatewayController {
   }
 
   @Get('/service-1')
+  @UseGuards(AuthGuard)
+  // @Roles({ roles: ['client-user'] })
   @ApiOperation({ summary: 'Get hello message from Service 1' })
   @ApiResponse({
     status: 200,
@@ -115,6 +134,8 @@ export class ApiGatewayController {
   }
 
   @Get('/service-2')
+  @UseGuards(KeycloakAuthGuard, RolesGuard)
+  @Roles({ roles: ['client-user'] })
   @ApiOperation({ summary: 'Get hello message from Service 2' })
   @ApiResponse({
     status: 200,

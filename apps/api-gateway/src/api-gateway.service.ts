@@ -18,4 +18,7 @@ export class ApiGatewayService {
   SumService2(client, calculateInput): Observable<number> {
     return client.send({ cmd: 'sum-service-2' }, calculateInput);
   }
+  check(client): Observable<string> {
+    return client.send({ cmd: 'check' });
+  }
 }
