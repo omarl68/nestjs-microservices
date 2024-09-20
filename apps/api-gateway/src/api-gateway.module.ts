@@ -32,13 +32,13 @@ import { APP_GUARD } from '@nestjs/core';
     KeycloakConnectModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
-        authServerUrl: configService.get<string>('KEYCLOAK_AUTH_SERVER_URL'),
+        authServerUrl: configService.get<string>('KEYCLOAK_SERVER_URL'),
         realm: configService.get<string>('KEYCLOAK_REALM'),
         clientId: configService.get<string>('KEYCLOAK_CLIENT_ID'),
         secret: configService.get<string>('KEYCLOAK_CLIENT_SECRET'),
         policyEnforcement: PolicyEnforcementMode.PERMISSIVE,
-        tokenValidation: TokenValidation.OFFLINE,
-      //  realmPublicKey:"http://localhost:8081/realms/softy-rh",
+        tokenValidation: TokenValidation.ONLINE,
+       // realmPublicKey:"http://keycloak:8081/realms/softy-rh",
         bearerOnly: true,
         useNestLogger: true,
         cookieKey: 'KEYCLOAK_JWT',
@@ -80,7 +80,7 @@ import { APP_GUARD } from '@nestjs/core';
   controllers: [ApiGatewayController],
   providers: [
     ApiGatewayService,
-    {
+/*     {
       provide: APP_GUARD,
       useClass: AuthGuard,
     },
@@ -91,7 +91,7 @@ import { APP_GUARD } from '@nestjs/core';
     {
       provide: APP_GUARD,
       useClass: RoleGuard,
-    },
+    }, */
   ],
 })
 export class ApiGatewayModule {}

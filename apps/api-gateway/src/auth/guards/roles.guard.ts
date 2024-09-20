@@ -7,19 +7,23 @@ export class RolesGuard implements CanActivate {
 
   canActivate(context: ExecutionContext): boolean {
     const requiredRoles = this.reflector.get<string[]>('roles', context.getHandler());
-    if (!requiredRoles) {
+    if (!requiredRoles || !Array.isArray(requiredRoles)) {
       return true; // No roles required, allow access
     }
 
     const request = context.switchToHttp().getRequest();
     const user = request.user; // JWT decoded user info
 
-    if (!user || !user.realm_access || !user.realm_access.roles) {
-      return false; // No roles found in the token
+    if (!user) {
+      return false; // No user information found
     }
 
-    const userRoles = user.realm_access.roles;
-    
+    // Extract roles from both realm_access and resource_access
+    const realmRoles = user.realm_access?.roles || [];
+    const clientRoles = user.resource_access?.['confidential-client']?.roles || [];
+
+    const userRoles = [...realmRoles, ...clientRoles];
+
     // Check if the user has any of the required roles
     return requiredRoles.some(role => userRoles.includes(role));
   }

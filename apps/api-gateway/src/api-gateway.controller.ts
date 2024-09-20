@@ -5,6 +5,7 @@ import {
   HttpException,
   HttpStatus,
   Inject,
+  InternalServerErrorException,
   Post,
   Req,
   Res,
@@ -23,13 +24,12 @@ import { register } from 'prom-client';
 import {
   AuthGuard,
   Resource,
-  RoleGuard,
-  Roles,
   Scopes,
   Unprotected,
 } from 'nest-keycloak-connect';
 import { RolesGuard } from './auth/guards/roles.guard';
 import { KeycloakAuthGuard } from './auth/guards/keycloak-auth.guard';
+import { Roles } from './auth/decorators/roles.decorator';
 
 @Controller()
 @ApiTags('apiGateway')
@@ -42,7 +42,7 @@ export class ApiGatewayController {
   ) {}
 
   @Get('protected')
-  @UseGuards(AuthGuard, RoleGuard)
+  @UseGuards(AuthGuard)
   getProtectedResource() {
     return 'This is a protected resource';
   }
@@ -66,7 +66,7 @@ export class ApiGatewayController {
 
   @Get()
   @Unprotected()
-  @Roles({ roles: ['client-user'] })
+ // @Roles({ roles: ['client-user'] })
   @ApiOperation({ summary: 'Get hello message' })
   @ApiResponse({ status: 200, description: 'Returns a hello message' })
   getHello(): string {
@@ -108,15 +108,25 @@ export class ApiGatewayController {
   }
 
   @Get('/service-1')
-  @UseGuards(AuthGuard)
-  // @Roles({ roles: ['client-user'] })
+  @UseGuards(AuthGuard, RolesGuard)
+  @Roles('client_user')
   @ApiOperation({ summary: 'Get hello message from Service 1' })
   @ApiResponse({
     status: 200,
     description: 'Returns a hello message from Service 1',
   })
   async getHelloService1(): Promise<string> {
-    return await firstValueFrom(this.apiGatewayService.SendHello1(this.client));
+    try {
+      return await firstValueFrom(
+        this.apiGatewayService.SendHello1(this.client),
+      );
+    } catch (error) {
+      this.logger.error(
+        'Error in Microservice 1 communication:',
+        error.message,
+      );
+      throw new InternalServerErrorException('Microservice 1 is unreachable');
+    }
   }
 
   @Post('/sum-service-1')
@@ -135,7 +145,7 @@ export class ApiGatewayController {
 
   @Get('/service-2')
   @UseGuards(KeycloakAuthGuard, RolesGuard)
-  @Roles({ roles: ['client-user'] })
+  //@Roles({ roles: ['client_user'] })
   @ApiOperation({ summary: 'Get hello message from Service 2' })
   @ApiResponse({
     status: 200,
